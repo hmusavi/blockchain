@@ -6,7 +6,7 @@ contract EtherBank {
     address public owner;
 
     struct Payment {
-        uint256 amount;
+        int256 amount;
         uint256 timestamp;
     }
 
@@ -32,11 +32,11 @@ contract EtherBank {
 
     function deposit() public payable {
         Payment memory payment = Payment({
-            amount: msg.value,
+            amount: int256(msg.value),
             timestamp: block.timestamp
         });
 
-        balances[msg.sender].totalBalance += payment.amount;
+        balances[msg.sender].totalBalance += uint256(payment.amount);
         balances[msg.sender].payments[
             balances[msg.sender].numPayments
         ] = payment;
@@ -44,24 +44,29 @@ contract EtherBank {
     }
 
     function withdraw(uint256 _money) public sufficientFunds(_money) {
-        address payable _to = payable(msg.sender);
-        Balance storage balance = balances[msg.sender];
-
-        balance.totalBalance -= _money;
-        balance.numPayments++;
-        _to.transfer(_money);
+        payable(msg.sender).transfer(_withdraw(_money));
     }
 
-    function sendMoney(address payable _to, uint256 _money)
-        public
+    function sendMoney(address payable _to, uint256 _money) public {
+        _to.transfer(_withdraw(_money));
+    }
+
+    function _withdraw(uint256 _money)
+        private
         minimumAmount(_money)
         sufficientFunds(_money)
+        returns (uint256)
     {
         Balance storage balance = balances[msg.sender];
+        Payment memory payment = Payment({
+            amount: -int256(_money),
+            timestamp: block.timestamp
+        });
 
         balance.totalBalance -= _money;
+        balance.payments[balance.numPayments] = payment;
         balance.numPayments++;
-        _to.transfer(_money);
+        return _money;
     }
 
     modifier minimumAmount(uint256 _money) {
