@@ -4,6 +4,7 @@ pragma solidity ^0.8.13;
 
 contract EtherBank {
     address public owner;
+    bool active;
 
     struct Payment {
         int256 amount;
@@ -19,18 +20,29 @@ contract EtherBank {
     mapping(address => Balance) balances;
 
     constructor() {
+        active = true;
         owner = msg.sender;
     }
 
-    function getBankBalance() public view mustBeOwner returns (uint256) {
+    function setActive(bool _active) public mustBeOwner {
+        active = _active;
+    }
+
+    function getBankBalance()
+        public
+        view
+        contractIsActive
+        mustBeOwner
+        returns (uint256)
+    {
         return address(this).balance;
     }
 
-    function getBalance() public view returns (uint256) {
+    function getBalance() public view contractIsActive returns (uint256) {
         return balances[msg.sender].totalBalance;
     }
 
-    function deposit() public payable {
+    function deposit() public payable contractIsActive {
         Payment memory payment = Payment({
             amount: int256(msg.value),
             timestamp: block.timestamp
@@ -43,7 +55,7 @@ contract EtherBank {
         balances[msg.sender].numPayments++;
     }
 
-    function withdraw(uint256 _money) public sufficientFunds(_money) {
+    function withdraw(uint256 _money) public {
         payable(msg.sender).transfer(_withdraw(_money));
     }
 
@@ -53,6 +65,7 @@ contract EtherBank {
 
     function _withdraw(uint256 _money)
         private
+        contractIsActive
         minimumAmount(_money)
         sufficientFunds(_money)
         returns (uint256)
@@ -67,6 +80,12 @@ contract EtherBank {
         balance.payments[balance.numPayments] = payment;
         balance.numPayments++;
         return _money;
+    }
+
+    modifier contractIsActive() {
+        require(active, "Contract is currently disabled. Try later.");
+
+        _;
     }
 
     modifier minimumAmount(uint256 _money) {
