@@ -29,11 +29,11 @@ contract EtherBank {
     }
 
     fallback() external payable {
-        _deposit();
+        _deposit(msg.sender, msg.value);
     }
 
     receive() external payable {
-        _deposit();
+        _deposit(msg.sender, msg.value);
     }
 
     function getBankBalance()
@@ -61,28 +61,35 @@ contract EtherBank {
     }
 
     function deposit() public payable {
-        _deposit();
+        _deposit(msg.sender, msg.value);
     }
 
-    function _deposit() private contractIsActive {
+    function _deposit(address _address, uint256 _money)
+        private
+        contractIsActive
+    {
         Payment memory payment = Payment({
-            amount: int256(msg.value),
+            amount: int256(_money),
             timestamp: block.timestamp
         });
 
-        balances[msg.sender].totalBalance += uint256(payment.amount);
-        balances[msg.sender].payments[
-            balances[msg.sender].numTransaction
+        balances[_address].totalBalance += uint256(payment.amount);
+        balances[_address].payments[
+            balances[_address].numTransaction
         ] = payment;
-        balances[msg.sender].numTransaction++;
+        balances[_address].numTransaction++;
     }
 
     function withdraw(uint256 _money) public {
         payable(msg.sender).transfer(_withdraw(_money));
     }
 
-    function sendMoney(address payable _to, uint256 _money) public {
+    function send(address payable _to, uint256 _money) public {
         _to.transfer(_withdraw(_money));
+    }
+
+    function transfer(address payable _to, uint256 _money) public {
+        _deposit(_to, _withdraw(_money));
     }
 
     function _withdraw(uint256 _money)
