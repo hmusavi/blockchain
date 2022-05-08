@@ -2,10 +2,12 @@
 
 pragma solidity ^0.8.13;
 
-contract StartStopUpdateExample {
+contract EtherBank {
+    address owner;
     uint256 public lastAmountReceived;
 
     constructor() payable minimumValue(msg.value) {
+        owner = msg.sender;
         lastAmountReceived = msg.value;
     }
 
@@ -17,23 +19,17 @@ contract StartStopUpdateExample {
         lastAmountReceived = msg.value;
     }
 
-    function withdraw(uint256 _money) public haveEnoughMoney(_money) {
+    function withdraw(uint256 _money) public mustBeOwner {
         address payable _to = payable(msg.sender);
         _to.transfer(_money);
     }
 
-    function sendMoney(address payable _to, uint256 _money)
-        public
-        haveEnoughMoney(_money)
-    {
+    function sendMoney(address payable _to, uint256 _money) public mustBeOwner {
         _to.transfer(_money);
     }
 
-    modifier haveEnoughMoney(uint256 _money) {
-        require(
-            address(this).balance >= _money,
-            "Not enough funds in the contract."
-        );
+    modifier mustBeOwner() {
+        require(msg.sender == owner, "You must be the Contract owner.");
 
         _;
     }
