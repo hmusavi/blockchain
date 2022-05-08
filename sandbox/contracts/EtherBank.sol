@@ -13,7 +13,7 @@ contract EtherBank {
 
     struct Balance {
         uint256 totalBalance;
-        uint256 numPayments;
+        uint256 numTransaction;
         mapping(uint256 => Payment) payments;
     }
 
@@ -26,6 +26,14 @@ contract EtherBank {
 
     function setActive(bool _active) public mustBeOwner {
         active = _active;
+    }
+
+    fallback() external payable {
+        _deposit();
+    }
+
+    receive() external payable {
+        _deposit();
     }
 
     function getBankBalance()
@@ -42,7 +50,21 @@ contract EtherBank {
         return balances[msg.sender].totalBalance;
     }
 
-    function deposit() public payable contractIsActive {
+    function getBalance(address _address)
+        public
+        view
+        contractIsActive
+        mustBeOwner
+        returns (uint256)
+    {
+        return balances[_address].totalBalance;
+    }
+
+    function deposit() public payable {
+        _deposit();
+    }
+
+    function _deposit() private contractIsActive {
         Payment memory payment = Payment({
             amount: int256(msg.value),
             timestamp: block.timestamp
@@ -50,9 +72,9 @@ contract EtherBank {
 
         balances[msg.sender].totalBalance += uint256(payment.amount);
         balances[msg.sender].payments[
-            balances[msg.sender].numPayments
+            balances[msg.sender].numTransaction
         ] = payment;
-        balances[msg.sender].numPayments++;
+        balances[msg.sender].numTransaction++;
     }
 
     function withdraw(uint256 _money) public {
@@ -77,8 +99,8 @@ contract EtherBank {
         });
 
         balance.totalBalance -= _money;
-        balance.payments[balance.numPayments] = payment;
-        balance.numPayments++;
+        balance.payments[balance.numTransaction] = payment;
+        balance.numTransaction++;
         return _money;
     }
 
